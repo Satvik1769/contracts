@@ -6,12 +6,12 @@ import { IERC721 } from "@openzeppelin/token/ERC721/IERC721.sol";
 import { IERC20 } from "@openzeppelin/token/ERC20/IERC20.sol";
 import { IERC721Receiver } from "@openzeppelin/token/ERC721/IERC721Receiver.sol";
 import { Ownable } from "@openzeppelin/access/Ownable.sol";
-import {SignatureChecker} from "@openzeppelin/utils/cryptography/SignatureChecker.sol";
-import {Client} from "@ccip/ccip/libraries/Client.sol";
-import {IRouterClient} from "@ccip/ccip/interfaces/IRouterClient.sol";
+import { SignatureChecker } from "@openzeppelin/utils/cryptography/SignatureChecker.sol";
+import { Client } from "@ccip/ccip/libraries/Client.sol";
+import { IRouterClient } from "@ccip/ccip/interfaces/IRouterClient.sol";
 // import {} from "@opemzeppelin/c";
-import {IProfileNft} from "./interfaces/IProfileNft.sol";
-import {IProfileFactory} from "./interfaces/IProfileFactory.sol";
+import { IProfileNft } from "./interfaces/IProfileNft.sol";
+import { IProfileFactory } from "./interfaces/IProfileFactory.sol";
 
 contract ProfileNft is ERC721, Ownable, IERC721Receiver {
     error NotOwnerOrRouter();
@@ -19,11 +19,20 @@ contract ProfileNft is ERC721, Ownable, IERC721Receiver {
     error NotEnoughBalance();
     error NotValidSig();
 
+    struct Moment {
+        address userA;
+        address userB;
+        uint64 createdAt;
+        uint eventId;
+    }
+
     string public s_uri;
     uint256 public tokenId;
-    address public immutable i_linkAddress;
-    address public immutable i_factory;
-    IRouterClient public i_routerClient;
+
+    IProfileFactory public immutable i_factory;
+    mapping (uint tokenId => Moment moment) tokenIdToMoment;
+    
+
     // address
 
     // Event emitted when a message is sent to another chain.
@@ -40,25 +49,17 @@ contract ProfileNft is ERC721, Ownable, IERC721Receiver {
         string memory _name,
         string memory _symbol,
         address owner,
-        address router,
-        string memory _uri,
-        address linkAddress
-    ) ERC721(_name, _symbol) Ownable(owner) {
-        i_routerClient = IRouterClient(router);
+        string memory _uri
+    )
+        ERC721(_name, _symbol)
+        Ownable(owner)
+    {
         s_uri = _uri;
-        i_linkAddress = linkAddress;
-        i_factory = msg.sender;
-    }
-
-    modifier onlyOwnerOrRouter() {
-        if (msg.sender != owner() || msg.sender != address(i_routerClient)) {
-            revert NotOwnerOrRouter();
-        }
-        _;
+        i_factory = IProfileFactory(msg.sender);
     }
 
     modifier onlyFactory() {
-        if (msg.sender != i_factory) {
+        if (msg.sender != address(i_factory)) {
             revert NotFactory();
         }
         _;
@@ -67,28 +68,21 @@ contract ProfileNft is ERC721, Ownable, IERC721Receiver {
     function mint(
         address toAddress,
         bytes calldata sig,
-        uint64 chainSelector
-    ) public onlyOwnerOrRouter {
+        uint64
+    )
+        /**
+         * chainSelector
+         */
+        public
+        onlyOwner
+    {
         tokenId++;
-        if (chainSelector != 0) {
-            // checkSignature();
-            _safeMint(toAddress, tokenId);
-            bytes32 messageId = sendMessage(chainSelector, toAddress, sig);
-        } else {
-            _safeMint(toAddress, tokenId);
-
-        }
+        _safeMint(toAddress, tokenId);
+        i_factory.makeConnection(toAddress, sig);
     }
 
-    function mintFromFactory(
-        address toAddress,
-        bytes calldata sig
-    ) external onlyFactory {
-        bool isValidSig = SignatureChecker.isValidSignatureNow(
-            owner(),
-            hashOfSig(toAddress),
-            sig
-        );
+    function mintFromFactory(address toAddress, bytes calldata sig) external onlyFactory {
+        bool isValidSig = SignatureChecker.isValidSignatureNow(owner(), hashOfSig(toAddress), sig);
         if (!isValidSig) {
             revert NotValidSig();
         }
@@ -100,65 +94,50 @@ contract ProfileNft is ERC721, Ownable, IERC721Receiver {
         return keccak256(abi.encode(toAddress));
     }
 
-    function sendMessage(
-        uint64 destinationChainSelector,
-        address receiver,
-        bytes calldata sig
-    ) internal returns (bytes32 messageId) {
-        bytes memory data = abi.encodeWithSignature(
-            "mint(address,bytes,uint64)",
-            address(this),
-            sig,
-            destinationChainSelector
-        );
-        // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
-        Client.EVM2AnyMessage memory evm2AnyMessage = Client.EVM2AnyMessage({
-            receiver: abi.encode(receiver), // ABI-encoded receiver address
-            data: data, // ABI-encoded string
-            tokenAmounts: new Client.EVMTokenAmount[](0), // Empty array indicating no tokens are being sent
-            extraArgs: Client._argsToBytes(
-                // Additional arguments, setting gas limit and non-strict sequencing mode
-                Client.EVMExtraArgsV1({gasLimit: 200_000})
-            ),
-            // Set the feeToken  address, indicating LINK will be used for fees
-            feeToken: address(i_linkAddress)
-        });
+    // function sendMessage(
+    //     uint64 destinationChainSelector,
+    //     address receiver,
+    //     bytes calldata sig
+    // )
+    //     internal
+    //     returns (bytes32 messageId)
+    // {
+    //     bytes memory data =
+    //         abi.encodeWithSignature("mint(address,bytes,uint64)", address(this), sig, destinationChainSelector);
+    //     // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
+    //     Client.EVM2AnyMessage memory evm2AnyMessage = Client.EVM2AnyMessage({
+    //         receiver: abi.encode(receiver), // ABI-encoded receiver address
+    //         data: data, // ABI-encoded string
+    //         tokenAmounts: new Client.EVMTokenAmount[](0), // Empty array indicating no tokens are being sent
+    //         extraArgs: Client._argsToBytes(
+    //             // Additional arguments, setting gas limit and non-strict sequencing mode
+    //             Client.EVMExtraArgsV1({ gasLimit: 200_000 })
+    //             ),
+    //         // Set the feeToken  address, indicating LINK will be used for fees
+    //         feeToken: address(i_linkAddress)
+    //     });
 
-        // Get the fee required to send the message
-        uint256 fees = i_routerClient.getFee(
-            destinationChainSelector,
-            evm2AnyMessage
-        );
+    //     // Get the fee required to send the message
+    //     uint256 fees = i_routerClient.getFee(destinationChainSelector, evm2AnyMessage);
 
-        if (fees > IERC20(i_linkAddress).balanceOf(address(this)))
-            revert NotEnoughBalance();
+    //     if (fees > IERC20(i_linkAddress).balanceOf(address(this))) {
+    //         revert NotEnoughBalance();
+    //     }
 
-        // approve the Router to transfer LINK tokens on contract's behalf. It will spend the fees in LINK
-        IERC20(i_linkAddress).approve(address(i_routerClient), fees);
+    //     // approve the Router to transfer LINK tokens on contract's behalf. It will spend the fees in LINK
+    //     IERC20(i_linkAddress).approve(address(i_routerClient), fees);
 
-        // Send the message through the router and store the returned message ID
-        messageId = i_routerClient.ccipSend(
-            destinationChainSelector,
-            evm2AnyMessage
-        );
-        // Emit an event with message details
-        emit MessageSent(
-            messageId,
-            destinationChainSelector,
-            receiver,
-            data,
-            address(i_linkAddress),
-            fees
-        );
-    }
+    //     // Send the message through the router and store the returned message ID
+    //     messageId = i_routerClient.ccipSend(destinationChainSelector, evm2AnyMessage);
+    //     // Emit an event with message details
+    //     emit MessageSent(messageId, destinationChainSelector, receiver, data, address(i_linkAddress), fees);
+    // }
 
     /**
      * @dev See {IERC721Metadata-tokenURI}.
      */
 
-    function tokenURI(
-        uint256 tokenId
-    ) public view override returns (string memory) {
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
         _requireOwned(tokenId);
         string memory baseURI = _baseURI();
         return baseURI;
@@ -178,5 +157,11 @@ contract ProfileNft is ERC721, Ownable, IERC721Receiver {
         address from,
         uint256 tokenId,
         bytes calldata data
-    ) external override returns (bytes4) {}
+    )
+        external
+        override
+        returns (bytes4)
+    {
+        return this.onERC721Received.selector;
+    }
 }
