@@ -22,7 +22,8 @@
   fuzz = { runs = 10_000 }
   verbosity = 4
 
-# [etherscan]
+[etherscan]
+  scroll_sepolia = { key = "48EQKFV3BTGJN8DRY4E2UNMMYZIITYFSPY", chain=534351, url="https://api-sepolia.scrollscan.com/api" }
 #   arbitrum_one = { key = "${API_KEY_ARBISCAN}" }
 #   avalanche = { key = "${API_KEY_SNOWTRACE}" }
 #   bnb_smart_chain = { key = "${API_KEY_BSCSCAN}" }
@@ -44,13 +45,15 @@
   wrap_comments = true
 
 [rpc_endpoints]
-  arbitrum_one = "https://arbitrum-mainnet.infura.io/v3/${API_KEY_INFURA}"
-  avalanche = "https://avalanche-mainnet.infura.io/v3/${API_KEY_INFURA}"
-  bnb_smart_chain = "https://bsc-dataseed.binance.org"
-  gnosis_chain = "https://rpc.gnosischain.com"
-  goerli = "https://goerli.infura.io/v3/${API_KEY_INFURA}"
-  localhost = "http://localhost:8545"
-  mainnet = "https://eth-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
-  optimism = "https://optimism-mainnet.infura.io/v3/${API_KEY_INFURA}"
-  polygon = "https://polygon-mainnet.infura.io/v3/${API_KEY_INFURA}"
-  sepolia = "https://sepolia.infura.io/v3/${API_KEY_INFURA}"
+  # arbitrum_one = "https://arbitrum-mainnet.infura.io/v3/${API_KEY_INFURA}"
+  # avalanche = "https://avalanche-mainnet.infura.io/v3/${API_KEY_INFURA}"
+  # bnb_smart_chain = "https://bsc-dataseed.binance.org"
+  # gnosis_chain = "https://rpc.gnosischain.com"
+  # goerli = "https://goerli.infura.io/v3/${API_KEY_INFURA}"
+  # localhost = "http://localhost:8545"
+  # mainnet = "https://eth-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+  # optimism = "https://optimism-mainnet.infura.io/v3/${API_KEY_INFURA}"
+  # polygon = "https://polygon-mainnet.infura.io/v3/${API_KEY_INFURA}"
+  # sepolia = "https://sepolia.infura.io/v3/${API_KEY_INFURA}"
+  scroll_sepolia = "https://sepolia-rpc.scroll.io"
+

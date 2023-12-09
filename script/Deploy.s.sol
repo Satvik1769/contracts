@@ -10,14 +10,14 @@ contract Deploy is Script {
     address entryPoint = address(6);
 
     function run() external {
-        uint256 privateKey = vm.envUint("PRIVATE_KEY");
+        // uint256 privateKey = vm.envUint("PRIVATE_KEY");
         // if (chainId == 11_155_111) {
         //     privateKey = vm.envUint("SEPOLIA_PRIVATE_KEY");
         // } else {
         //     privateKey = vm.envUint("PRIVATE_KEY");
         // }
 
-        vm.startBroadcast(privateKey);
+        vm.startBroadcast();
         address factory = deploy();
 
         vm.stopBroadcast();
