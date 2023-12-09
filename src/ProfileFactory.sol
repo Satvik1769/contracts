@@ -16,17 +16,24 @@ contract ProfileFactory {
 
     constructor() { }
 
-    function createProfile(string calldata _name, string calldata _symbol, string calldata _uri) external returns (address profileAddress) {
+    function createProfile(
+        string calldata _name,
+        string calldata _symbol,
+        string calldata _uri
+    )
+        external
+        returns (address profileAddress)
+    {
         ProfileNft _profile = new ProfileNft(_name,_symbol,msg.sender,_uri);
         profileToIsMinted[address(_profile)] = true;
         profileAddress = address(_profile);
         emit ProfileMinted(profileAddress, msg.sender, _uri);
     }
 
-    function makeConnection(address profileAddress, bytes memory sig) external {
+    function makeConnection(address profileAddress, bytes memory sig, uint256 eventId) external {
         if (!profileToIsMinted[profileAddress]) {
             revert NotMinted();
         }
-        IProfileNft(profileAddress).mintFromFactory(msg.sender, sig);
+        IProfileNft(profileAddress).mintFromFactory(msg.sender, sig, eventId);
     }
 }

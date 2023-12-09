@@ -23,27 +23,16 @@ contract ProfileNft is ERC721, Ownable, IERC721Receiver {
         address userA;
         address userB;
         uint64 createdAt;
-        uint eventId;
+        uint256 eventId;
     }
+
+    event MomentMinted(address indexed profile2, uint256 indexed eventId);
 
     string public s_uri;
     uint256 public tokenId;
 
     IProfileFactory public immutable i_factory;
-    mapping (uint tokenId => Moment moment) tokenIdToMoment;
-    
-
-    // address
-
-    // Event emitted when a message is sent to another chain.
-    event MessageSent(
-        bytes32 indexed messageId,
-        uint64 indexed destinationChainSelector,
-        address receiver,
-        bytes data,
-        address feeToken,
-        uint256 fees
-    );
+    mapping(uint256 tokenId => Moment moment) tokenIdToMoment;
 
     constructor(
         string memory _name,
@@ -65,73 +54,30 @@ contract ProfileNft is ERC721, Ownable, IERC721Receiver {
         _;
     }
 
-    function mint(
-        address toAddress,
-        bytes calldata sig,
-        uint64
-    )
-        /**
-         * chainSelector
-         */
-        public
-        onlyOwner
-    {
+    function mint(address toAddress, bytes calldata sig, uint64 eventId) public onlyOwner {
         tokenId++;
         _safeMint(toAddress, tokenId);
-        i_factory.makeConnection(toAddress, sig);
+        tokenIdToMoment[tokenId] =
+            Moment({ userA: address(this), userB: toAddress, createdAt: uint64(block.timestamp), eventId: eventId });
+        i_factory.makeConnection(toAddress, sig, eventId);
+        emit MomentMinted(toAddress, eventId);
     }
 
-    function mintFromFactory(address toAddress, bytes calldata sig) external onlyFactory {
+    function mintFromFactory(address toAddress, bytes calldata sig, uint256 eventId) external onlyFactory {
         bool isValidSig = SignatureChecker.isValidSignatureNow(owner(), hashOfSig(toAddress), sig);
         if (!isValidSig) {
             revert NotValidSig();
         }
+        tokenIdToMoment[tokenId] =
+            Moment({ userA: address(this), userB: toAddress, createdAt: uint64(block.timestamp), eventId: eventId });
         tokenId++;
         _safeMint(toAddress, tokenId);
+        emit MomentMinted(toAddress, eventId);
     }
 
     function hashOfSig(address toAddress) public pure returns (bytes32) {
         return keccak256(abi.encode(toAddress));
     }
-
-    // function sendMessage(
-    //     uint64 destinationChainSelector,
-    //     address receiver,
-    //     bytes calldata sig
-    // )
-    //     internal
-    //     returns (bytes32 messageId)
-    // {
-    //     bytes memory data =
-    //         abi.encodeWithSignature("mint(address,bytes,uint64)", address(this), sig, destinationChainSelector);
-    //     // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
-    //     Client.EVM2AnyMessage memory evm2AnyMessage = Client.EVM2AnyMessage({
-    //         receiver: abi.encode(receiver), // ABI-encoded receiver address
-    //         data: data, // ABI-encoded string
-    //         tokenAmounts: new Client.EVMTokenAmount[](0), // Empty array indicating no tokens are being sent
-    //         extraArgs: Client._argsToBytes(
-    //             // Additional arguments, setting gas limit and non-strict sequencing mode
-    //             Client.EVMExtraArgsV1({ gasLimit: 200_000 })
-    //             ),
-    //         // Set the feeToken  address, indicating LINK will be used for fees
-    //         feeToken: address(i_linkAddress)
-    //     });
-
-    //     // Get the fee required to send the message
-    //     uint256 fees = i_routerClient.getFee(destinationChainSelector, evm2AnyMessage);
-
-    //     if (fees > IERC20(i_linkAddress).balanceOf(address(this))) {
-    //         revert NotEnoughBalance();
-    //     }
-
-    //     // approve the Router to transfer LINK tokens on contract's behalf. It will spend the fees in LINK
-    //     IERC20(i_linkAddress).approve(address(i_routerClient), fees);
-
-    //     // Send the message through the router and store the returned message ID
-    //     messageId = i_routerClient.ccipSend(destinationChainSelector, evm2AnyMessage);
-    //     // Emit an event with message details
-    //     emit MessageSent(messageId, destinationChainSelector, receiver, data, address(i_linkAddress), fees);
-    // }
 
     /**
      * @dev See {IERC721Metadata-tokenURI}.

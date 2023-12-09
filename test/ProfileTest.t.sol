@@ -34,10 +34,9 @@ contract ProfileTest is Test, HelpersConfig, Deploy {
     }
 
     function testMakeProfile() external {
-        
         hoax(user1, 10 ether);
         vm.expectEmit(false, false, true, false);
-        emit ProfileMinted(address(267),address(this), uri);
+        emit ProfileMinted(address(267), address(this), uri);
         address _profile = factory.createProfile(name, symbol, uri);
         profile = ProfileNft(_profile);
         address owner = profile.owner();
@@ -55,11 +54,10 @@ contract ProfileTest is Test, HelpersConfig, Deploy {
         hoax(user2, 10 ether);
         ProfileNft profile2 = makeProfile();
 
-
         bytes32 digest = keccak256(abi.encode(address(profile1)));
         (uint8 v2, bytes32 r2, bytes32 s2) = vm.sign(2, digest);
         bytes memory user2Signature = abi.encodePacked(r2, s2, v2);
         hoax(user1);
-        profile1.mint(address(profile2), user2Signature,0);
+        profile1.mint(address(profile2), user2Signature, 0);
     }
 }

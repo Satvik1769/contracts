@@ -20,6 +20,6 @@ interface IProfileNft is IERC721 {
         uint256 fees
     );
 
-    function mint(address toAddress, bytes calldata sig, uint64 chainSelector) external;
-    function mintFromFactory(address toAddress, bytes calldata sig) external;
+    function mint(address toAddress, bytes calldata sig, uint64 eventId) external;
+    function mintFromFactory(address toAddress, bytes calldata sig, uint256 eventId) external;
 }
