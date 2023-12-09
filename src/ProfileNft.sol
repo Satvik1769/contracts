@@ -3,13 +3,9 @@ pragma solidity ^0.8.19;
 
 import { ERC721 } from "@openzeppelin/token/ERC721/ERC721.sol";
 import { IERC721 } from "@openzeppelin/token/ERC721/IERC721.sol";
-import { IERC20 } from "@openzeppelin/token/ERC20/IERC20.sol";
 import { IERC721Receiver } from "@openzeppelin/token/ERC721/IERC721Receiver.sol";
 import { Ownable } from "@openzeppelin/access/Ownable.sol";
 import { SignatureChecker } from "@openzeppelin/utils/cryptography/SignatureChecker.sol";
-import { Client } from "@ccip/ccip/libraries/Client.sol";
-import { IRouterClient } from "@ccip/ccip/interfaces/IRouterClient.sol";
-// import {} from "@opemzeppelin/c";
 import { IProfileNft } from "./interfaces/IProfileNft.sol";
 import { IProfileFactory } from "./interfaces/IProfileFactory.sol";
 
